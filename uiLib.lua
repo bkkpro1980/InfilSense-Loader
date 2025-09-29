@@ -30,7 +30,9 @@ TS = cloneref(game:GetService("TweenService"))
 local ti = TweenInfo.new(.2, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out, 0, false, 0)
 local libName = "Unnamed Script"
 local version = "Unknown Version"
-local saveFileLoc = "unnamed"
+local saveFolder = ""
+local saveFileName = "unnamed"
+local nameId = "unnamed"
 
 local container
 local background
@@ -96,12 +98,12 @@ configManager = {
 		end
 
 		-- Initialize empty config if file doesn't exist
-		if not isfile(saveFileLoc..".json") then
-			writefile(saveFileLoc..".json", "{\"Startup\":{},\"Keybinds\":{},\"Settings\":{},\"MenuToggle\":\"RightShift\"}")
+		if not isfile(module:GetSaveFileLocation()..".json") then
+			writefile(module:GetSaveFileLocation()..".json", "{\"Startup\":{},\"Keybinds\":{},\"Settings\":{},\"MenuToggle\":\"RightShift\"}")
 		end
 
 		-- Load existing config
-		local config = loadConfig(saveFileLoc..".json") or {}
+		local config = loadConfig(module:GetSaveFileLocation()..".json") or {}
 		
 		-- Ensure config is a table
 		if typeof(config) ~= "table" then
@@ -119,7 +121,7 @@ configManager = {
 		end
 
 		-- Save the updated config
-		local success, _err = saveConfig(saveFileLoc..".json", config)
+		local success, _err = saveConfig(module:GetSaveFileLocation()..".json", config)
 		if not success then
 			return false
 		end
@@ -133,11 +135,11 @@ configManager = {
 			return false, "Invalid command string"
 		end
 
-		if not isfile(saveFileLoc..".json") then
-			writefile(saveFileLoc..".json", "{\"Startup\":{},\"Keybinds\":{},\"Settings\":{},\"MenuToggle\":\"RightShift\"}")
+		if not isfile(module:GetSaveFileLocation()..".json") then
+			writefile(module:GetSaveFileLocation()..".json", "{\"Startup\":{},\"Keybinds\":{},\"Settings\":{},\"MenuToggle\":\"RightShift\"}")
 		end
 
-		local config = loadConfig(saveFileLoc..".json") or {}
+		local config = loadConfig(module:GetSaveFileLocation()..".json") or {}
 		
 		if typeof(config) ~= "table" then
 			config = {}
@@ -153,7 +155,7 @@ configManager = {
 		end
 
 		-- Save the updated config
-		local success, _err = saveConfig(saveFileLoc..".json", config)
+		local success, _err = saveConfig(module:GetSaveFileLocation()..".json", config)
 		if not success then
 			return false
 		end
@@ -162,8 +164,8 @@ configManager = {
 	end,
 	
 	list = function(dict)
-		if not isfile(saveFileLoc..".json") then return {} end
-		local config = loadConfig(saveFileLoc..".json") or {}
+		if not isfile(module:GetSaveFileLocation()..".json") then return {} end
+		local config = loadConfig(module:GetSaveFileLocation()..".json") or {}
 		if typeof(dict) == "string" then
 			return config[dict] or {}
 		else
@@ -172,8 +174,8 @@ configManager = {
 	end,
 	
 	clear = function()
-		writefile(saveFileLoc..".json", "{\"Startup\":{},\"Keybinds\":{},\"Settings\":{},\"MenuToggle\":\"RightShift\"}")
-		return loadConfig(saveFileLoc..".json")
+		writefile(module:GetSaveFileLocation()..".json", "{\"Startup\":{},\"Keybinds\":{},\"Settings\":{},\"MenuToggle\":\"RightShift\"}")
+		return loadConfig(module:GetSaveFileLocation()..".json")
 	end
 }
 --[[ END OF FILE SYSTEM FUNCTIONS \]]--
@@ -280,7 +282,7 @@ end
 
 local function startupFunc(command)
 	if not command then return false end
-	local config = loadConfig(saveFileLoc..".json")
+	local config = loadConfig(module:GetSaveFileLocation()..".json")
 	config = config["Startup"] and config["Startup"][command] or false
 	
 	if not config then
@@ -302,8 +304,20 @@ function module:SetVersion(ver)
 	version = ver
 end
 
+function module:SetSaveFolder(folderName)
+	saveFolder = folderName
+end
+
+function module:SetNameId(id)
+	nameId = id
+end
+
 function module:SetSaveFileName(name)
-	saveFileLoc = name
+	saveFileName = name
+end
+
+function module:GetSaveFileLocation()
+	return saveFolder ~= "" and saveFolder.."/"..saveFileName or saveFileName
 end
 
 function module:RenameSaveFile(name,rename)
@@ -756,8 +770,8 @@ local function initialize()
 				TS:Create(keybind.stroke, ti, {Thickness = 0}):Play()
 			end)
 
-			if isfile(saveFileLoc..".json") then
-				local keyText = loadConfig(saveFileLoc..".json")
+			if isfile(module:GetSaveFileLocation()..".json") then
+				local keyText = loadConfig(module:GetSaveFileLocation()..".json")
 				keyText = keyText["MenuToggle"] or "RightShift"
 				keybindlabel.Text = "Bound to: " .. keyText
 				if isValidKey(keyText) then
@@ -804,8 +818,8 @@ local function initialize()
 					else
 						keybindlabel.Text = "Invalid Input!"
 						task.delay(1.5, function()
-							if isfile(saveFileLoc..".json") then
-								local keyText = loadConfig(saveFileLoc..".json")
+							if isfile(module:GetSaveFileLocation()..".json") then
+								local keyText = loadConfig(module:GetSaveFileLocation()..".json")
 								keyText = keyText["MenuToggle"] or "RightShift"
 								keybindlabel.Text = "Bound to: " .. keyText
 								if isValidKey(keyText) then
@@ -828,8 +842,8 @@ local function initialize()
 					if capturingKey then
 						keybindlabel.Text = "Capture Timed Out"
 						task.delay(1.5, function()
-							if isfile(saveFileLoc..".json") then
-								local keyText = loadConfig(saveFileLoc..".json")
+							if isfile(module:GetSaveFileLocation()..".json") then
+								local keyText = loadConfig(module:GetSaveFileLocation()..".json")
 								keyText = keyText["MenuToggle"] or "RightShift"
 								keybindlabel.Text = "Bound to: " .. keyText
 								if isValidKey(keyText) then
@@ -963,8 +977,8 @@ local function initialize()
 	selectClosed.Changed:Connect(function()
 		if selectClosed.Value then
 			close.Active = false
-			if isfile(saveFileLoc..".json") then
-				local keyText = loadConfig(saveFileLoc..".json")
+			if isfile(module:GetSaveFileLocation()..".json") then
+				local keyText = loadConfig(module:GetSaveFileLocation()..".json")
 				keyText = keyText["MenuToggle"] or "RightShift"
 				keybindlabel.Text = "Bound to: " .. keyText
 				if isValidKey(keyText) then
@@ -2175,8 +2189,8 @@ local function createSlider(...)
 		local moveConn
 		local releaseConn
 		
-		if shouldSave and isfile(saveFileLoc..".json") then
-			local config = loadConfig(saveFileLoc..".json")
+		if shouldSave and isfile(module:GetSaveFileLocation()..".json") then
+			local config = loadConfig(module:GetSaveFileLocation()..".json")
 			if config and config.Settings and config.Settings[command] ~= nil then
 				value = config.Settings[command]
 				local percent
@@ -2331,7 +2345,7 @@ end
 
 function module:Init()
 	initialize()
-	savedData = loadConfig(saveFileLoc..".json")
+	savedData = loadConfig(module:GetSaveFileLocation()..".json")
 
 	local pages = {}
 	local lib = {}
@@ -2607,8 +2621,8 @@ function module:Init()
 		if #output == 0 then
 			print("[" .. libName .. "]: No quick commands found.")
 		else
-			writefile(saveFileLoc .. "_commandIds.txt", table.concat(output, "\n"))
-			print("[" .. libName .. "]: File written to: " .. saveFileLoc .. "_commandIds.txt")
+			writefile((saveFolder ~= "" and saveFolder .. "/" or "") .. "commandIds/"..nameId..".txt", table.concat(output, "\n"))
+			print("[" .. libName .. "]: File written to: " .. (saveFolder ~= "" and saveFolder .. "/" or "") .. "commandIds/"..nameId..".txt")
 		end
 		print("\n[" .. libName .. "]: ---------- COMMANDS LIST OUTPUT END ----------")
 	end
