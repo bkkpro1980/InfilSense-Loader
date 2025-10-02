@@ -1,5 +1,5 @@
 -- ============================================================================
--- INFILSENSE LIBRARY - FULLY REFACTORED
+-- COMPLETE INFILSENSE LIBRARY - FULLY REFACTORED
 -- Developed by bkkpro1980
 -- ============================================================================
 
@@ -190,6 +190,30 @@ end
 function ConfigManager.clear()
     ConfigManager.save(ConfigManager.getDefault())
     return ConfigManager.getDefault()
+end
+
+function ConfigManager.renameFile(old, new)
+    local oldFile = old..".json"
+    local newFile = new..".json"
+    if not isfile(oldFile) then
+        return false,"Original file does not exist."
+    end
+    if isfile(newFile) then
+        return false,"A file with the new name already exists."
+    end
+    local readS,content = pcall(readfile,oldFile)
+    if not readS then
+        return false,"Failed to read the original file."
+    end
+    local writeS = pcall(writefile,newFile,content)
+    if not writeS then
+        return false,"Failed to write to the new file."
+    end
+    local delS = pcall(delfile,oldFile)
+    if not delS then
+        return false,"Failed to delete the original file."
+    end
+    return true
 end
 
 -- ============================================================================
