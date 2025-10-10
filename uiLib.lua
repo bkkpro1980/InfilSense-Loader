@@ -1,5 +1,5 @@
 -- ============================================================================
--- COMPLETE INFILSENSE LIBRARY - FULLY REFACTORED
+-- INFILSENSE LIBRARY
 -- Developed by bkkpro1980
 -- ============================================================================
 
@@ -1281,41 +1281,85 @@ function PageManager.create(pageName)
     mainList.Parent = mainPage
     
     -- Setup navigation
+    local navDebounce = false
+
     local function navigatePages()
+        -- clamp pageNum
+        State.pageNum = math.max(1, math.min(State.pageNum, State.pagesAmount or 1))
+
         for _, uiPage in ipairs(State.uiPages) do
-            if State.pageNum < State.lastPageNum and nextBtn.Activated then
-                uiPage:Next()
-            elseif State.pageNum > 1 and prevBtn.Activated then
-                uiPage:Previous()
+            if typeof(uiPage) == "Instance" and uiPage:IsA("UIPageLayout") then
+                -- determine how many page-like frames are direct children of this page container
+                local parent = uiPage.Parent
+                if parent then
+                    -- calculate target index relative to this uiPage
+                    local pagesCount = 0
+                    for _, c in ipairs(parent:GetChildren()) do
+                        if c:IsA("Frame") then pagesCount = pagesCount + 1 end
+                    end
+
+                    -- target index must be within bounds
+                    local targetIndex = math.max(1, math.min(State.pageNum, pagesCount))
+
+                    -- if we already are on the target, skip
+                    if uiPage.CurrentPageIndex ~= targetIndex then
+                        -- prefer JumpToIndex (instant, avoids animation race)
+                        if typeof(uiPage.JumpToIndex) == "function" then
+                            pcall(function() uiPage:JumpToIndex(targetIndex) end)
+                        else
+                            -- fallback: use relative moves but keep them minimal
+                            if uiPage.CurrentPageIndex < targetIndex then
+                                for i = uiPage.CurrentPageIndex + 1, targetIndex do
+                                    pcall(function() uiPage:Next() end)
+                                end
+                            elseif uiPage.CurrentPageIndex > targetIndex then
+                                for i = uiPage.CurrentPageIndex - 1, targetIndex, -1 do
+                                    pcall(function() uiPage:Previous() end)
+                                end
+                            end
+                        end
+                    end
+                end
             end
         end
+
         GUIManager.updatePageButtons()
-        
-        -- Show/hide buttons on pages
-        local currentPage = State.scrollFrame.UIPageLayout.CurrentPage
+
+        -- update visibility of ImageButtons on the scrollFrame so only the current frame's buttons show
+        local currentPage = State.scrollFrame.UIPageLayout and State.scrollFrame.UIPageLayout.CurrentPage
         for _, page in ipairs(State.scrollFrame:GetChildren()) do
             if page:IsA("Frame") then
+                local visible = (page == currentPage)
                 for _, child in ipairs(page:GetChildren()) do
                     if child:IsA("ImageButton") then
-                        child.Visible = (page == currentPage)
+                        child.Visible = visible
                     end
                 end
             end
         end
     end
-    
+
+    -- Replace nextBtn / prevBtn handlers with these (they debounce rapid clicks):
+    local NAV_DEBOUNCE_TIME = 0.18
+
     nextBtn.Activated:Connect(function()
+        if navDebounce then return end
+        navDebounce = true
         if State.pageNum < State.lastPageNum then
             State.pageNum = State.pageNum + 1
             navigatePages()
         end
+        task.delay(NAV_DEBOUNCE_TIME, function() navDebounce = false end)
     end)
-    
+
     prevBtn.Activated:Connect(function()
+        if navDebounce then return end
+        navDebounce = true
         if State.pageNum > 1 then
             State.pageNum = State.pageNum - 1
             navigatePages()
         end
+        task.delay(NAV_DEBOUNCE_TIME, function() navDebounce = false end)
     end)
     
     return mainPage
