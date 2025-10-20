@@ -564,6 +564,9 @@ function QuickCommand.toggle(value, binded)
         TS:Create(State.quickcmdUI, Constants.TWEEN_INFO_QUAD, 
             {Position = UDim2.new(0.5, 0, 0, 5)}):Play()
         State.quickcmdUI.text:CaptureFocus()
+        task.delay(0.3, function()
+            State.quickcmdDB = false
+        end)
         return
     end
     
@@ -1045,6 +1048,11 @@ function ComponentFactory.createSlider(buttonInfo, commandFunc, otherInfo, mainP
         local percent = sliderType == "bool" and (value and 1 or 0) or 
                        math.clamp((value - lowVal) / (maxVal - lowVal), 0, 1)
         sliderThumb.Position = UDim2.new(percent, 0, 0.5, 0)
+    end
+    
+    -- Convert to boolean if this is a bool slider
+    if sliderType == "bool" then
+        value = value and (value ~= 0 and value ~= false)
     end
     
     if label then
