@@ -7,7 +7,7 @@ global.infilsenseKey = 'YOUR KEY HERE'
 loadstring(game:HttpGet('https://raw.githubusercontent.com/bkkpro1980/InfilSense-Loader/refs/heads/main/loader.lua'))()
 ```
 
-## Official website: https://infilsense.dpdns.org
+## Official website: https://infilsense.com
 
 Source code are private due to privacy and security reasons.
 Contact me on Discord via the community server or DM @bkkpro1980 if you have any concerns or questions.
